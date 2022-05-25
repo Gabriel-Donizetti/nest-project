@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin 830986301383.dkr.ecr.sa-east-1.amazonaws.com
+      - REPOSITORY_URI=830986301383.dkr.ecr.sa-east-1.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - docker build -t nestjs-docker-aws .
+      - docker tag nestjs-docker-aws:latest 830986301383.dkr.ecr.sa-east-1.amazonaws.com/nestjs-docker-aws:latest
+      - cd $CODEBUILD_SRC_DIR
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push 830986301383.dkr.ecr.sa-east-1.amazonaws.com/nestjs-docker-aws:latest
+      - echo Writing image definitions file...
+      - printf '[{"name":"nestjs-docker-aws","imageUri":"%s"}]'830986301383.dkr.ecr.sa-east-1.amazonaws.com/nestjs-docker-aws > imagedefinitions.json
+      - cat imagedefinitions.json
+artifacts:
+  files:
+    - imagedefinitions.json
+cache:
+  paths:
+    - './node_modules/**/*'
